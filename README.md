@@ -15,7 +15,7 @@ To use LORM in your C# project, you can either download the source code and buil
 
 1. Open the NuGet Package Manager in Visual Studio Community
 
-2. Add as source in the options the path to the LORM folder
+2. Add as source in the options the path to the LORM folder (unzip release and point to it)
 
 3. Select the LORM package and install it
 
