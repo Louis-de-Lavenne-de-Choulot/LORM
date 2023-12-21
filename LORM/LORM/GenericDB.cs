@@ -163,11 +163,7 @@ namespace LORM
                 {
                     //get map column name, if value is not null, use it, otherwise use the property name
                     var mapColumnName = prop.GetCustomAttribute<ColumnNameAttribute>()?.Name ?? prop.Name;
-                    if (mapColumnName == columnName)
-                    {
-                        property = prop;
-                        break;
-                    }else if (prop.Name.ToLower() == columnName && mapColumnName == null)
+                    if (mapColumnName.ToLower() == columnName.ToLower())
                     {
                         property = prop;
                         break;

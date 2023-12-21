@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <Title>LORM</Title>
     <Description>LORM</Description>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <PackageReadmeFile>LORMREADME.md</PackageReadmeFile>
     <PackageReleaseNotes>LORM</PackageReleaseNotes>
   </PropertyGroup>
