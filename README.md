@@ -17,7 +17,7 @@ To use LORM in your C# project, you can either download the source code and buil
 
 2. Add as source in the options the path to the LORM folder (unzip release and point to it)
 
-3. Select the LORM package and install it
+3. Select the LORM package and install the latest version
 
 ## Usage
 

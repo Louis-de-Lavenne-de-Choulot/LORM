@@ -1,6 +1,6 @@
 //setup gitignore for c# dotnet
 
-*/vs
+*/.vs/
 *.vscode
 *.suo
 *.user

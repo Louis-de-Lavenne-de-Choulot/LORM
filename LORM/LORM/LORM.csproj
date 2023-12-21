@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <Title>LORM</Title>
     <Description>LORM</Description>
+    <Version>1.0.4</Version>
     <PackageReadmeFile>LORMREADME.md</PackageReadmeFile>
     <PackageReleaseNotes>LORM</PackageReleaseNotes>
   </PropertyGroup>
@@ -15,6 +16,7 @@
     <PackageReference Include="MySql.Data" Version="8.2.0" />
     <PackageReference Include="Npgsql" Version="8.0.1" />
     <PackageReference Include="Oracle.ManagedDataAccess" Version="21.12.0" />
+    <PackageReference Include="PostSharp.Redist" Version="2023.0.8" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
   </ItemGroup>
 

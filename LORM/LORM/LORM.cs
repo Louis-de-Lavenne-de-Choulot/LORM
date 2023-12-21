@@ -2,220 +2,18 @@
 using MySql.Data.MySqlClient;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
+using Org.BouncyCastle.Tls;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reflection;
 
 
 
 namespace LORM
 {
-    public class BetterDisposable : IDisposable
-    {
-        private bool _disposed = false;
-        public void Dispose()
-        {
-            // Dispose of unmanaged resources.
-            Dispose(true);
-            // Suppress finalization.
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                // TODO: dispose managed state (managed objects).
-            }
-
-            // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-            // TODO: set large fields to null.
-
-            _disposed = true;
-        }
-    }
-
-
-    public class DbObject<T> : BetterDisposable
-    {
-        public static string? BoundName { get; set; }
-        public static string? PrimaryKey { get; set; }
-        public T? Value { get; set; }
-
-        public T? GetElementById(int id)
-        {
-            string query = $"SELECT * FROM {BoundName} WHERE {PrimaryKey}=@id";
-            return GenericDB.Instance.ExecuteQueryFirst<T>(query, new { id });
-        }
-
-        public List<T> ExecuteQuery(string query, object parameters = null)
-        {
-            return GenericDB.Instance.ExecuteQuery<T>(query, parameters);
-        }
-
-        public void Insert(T entity)
-        {
-            var properties = entity.GetType().GetProperties();
-            var columnNamesList = new List<string>();
-            var parameterNamesList = new List<string>();
-            var parameters = new Dictionary<string, object>();
-
-            foreach (var property in properties)
-            {
-                var propertyName = property.Name;
-                var parameterName = $"@{propertyName}";
-                var propertyValue = property.GetValue(entity);
-
-                if (propertyValue != null && propertyName != PrimaryKey)
-                {
-                    Console.WriteLine($"Property name: {propertyName}, property value: {propertyValue}, primary key: {PrimaryKey}");
-                    columnNamesList.Add(propertyName);
-                    parameterNamesList.Add(parameterName);
-                    parameters.Add(parameterName, propertyValue);
-                }
-            }
-
-            var columnNames = string.Join(", ", columnNamesList);
-            var parameterNames = string.Join(", ", parameterNamesList);
-
-            string query = $"INSERT INTO {BoundName} ({columnNames}) VALUES ({parameterNames})";
-            GenericDB.Instance.ExecuteNonQuery(query, parameters);
-        }
-
-        public void BulkInsert(List<T> entities)
-        {
-            // get the properties of the first entity in the list without primary key
-            var properties = entities[0].GetType().GetProperties().Where(p => p.Name != PrimaryKey);
-            var columnNamesList = new List<string>();
-            var parameterNamesList = new List<string>();
-            var parameters = new Dictionary<string, object>();
-            int i = 0;
-            foreach (var property in properties)
-            {
-                var propertyName = property.Name;
-                columnNamesList.Add(propertyName);
-            }
-
-            foreach (var entity in entities)
-            {
-                var parN = new List<string>();
-                foreach (var property in properties)
-                {
-                    var propertyName = property.Name;
-                    var parameterName = $"@{propertyName}{i}";
-                    var propertyValue = property.GetValue(entity);
-
-                    if (propertyValue != null && propertyName != PrimaryKey)
-                    {
-                        parN.Add(parameterName);
-                        parameters.Add(parameterName, propertyValue);
-                    }
-                }
-                parameterNamesList.Add("(" + string.Join(", ", parN) + ")");
-                i++;
-            }
-
-            var columnNames = string.Join(", ", columnNamesList);
-            var parameterNames = string.Join(", ", parameterNamesList);
-
-            string query = $"INSERT INTO {BoundName} ({columnNames}) VALUES {parameterNames}";
-            Console.WriteLine(query);
-            GenericDB.Instance.ExecuteNonQuery(query, parameters);
-        }
-
-
-        public void Update(T entity)
-        {
-            var properties = entity.GetType().GetProperties().Where(p => p.Name != PrimaryKey);
-            var primaryKeyValue = GetValueOfPrimaryKey(entity);
-            string setClause = string.Join(", ", properties.Select(p => $"{p.Name}=@{p.Name}"));
-
-            string query = $"UPDATE {BoundName} SET {setClause} WHERE {PrimaryKey}=@PrimaryKey";
-            var parameters = new Dictionary<string, object>();
-            Console.WriteLine($"Query: {query}");
-            foreach (var property in properties)
-            {
-                var value = property.GetValue(entity);
-                parameters.Add(property.Name, value);
-            }
-            parameters.Add("PrimaryKey", primaryKeyValue);
-
-            GenericDB.Instance.ExecuteNonQuery(query, parameters);
-        }
-
-        public void Delete(T entity)
-        {
-            string query = $"DELETE FROM {BoundName} WHERE {PrimaryKey}=@{PrimaryKey}";
-            GenericDB.Instance.ExecuteNonQuery(query, new { id = GetValueOfPrimaryKey(entity) });
-        }
-
-        public List<T> Fetch(object conditions)
-        {
-            string query = $"SELECT * FROM {BoundName} WHERE ";
-            var parameters = new Dictionary<string, object>();
-            var conditionProperties = conditions.GetType().GetProperties();
-
-            for (int i = 0; i < conditionProperties.Length; i++)
-            {
-                var property = conditionProperties[i];
-                var propertyName = property.Name;
-                var parameterName = $"@{propertyName}";
-                var propertyValue = property.GetValue(conditions);
-
-                query += $"{propertyName}={parameterName}";
-
-                parameters.Add(parameterName, propertyValue);
-
-                if (i < conditionProperties.Length - 1)
-                {
-                    query += " AND ";
-                }
-            }
-
-            return GenericDB.Instance.ExecuteQuery<T>(query, parameters);
-        }
-
-        public int Count()
-        {
-            string query = $"SELECT COUNT(*) FROM {BoundName}";
-            return GenericDB.Instance.ExecuteScalar<int>(query);
-        }
-
-        public T GetLatest()
-        {
-            string query = $"SELECT * FROM {BoundName} ORDER BY {PrimaryKey} DESC LIMIT 1";
-            return GenericDB.Instance.ExecuteQueryFirst<T>(query);
-        }
-
-        public List<T> Join(string joinQuery)
-        {
-            return GenericDB.Instance.ExecuteQuery<T>(joinQuery);
-        }
-
-        public List<T> GetPage(int pageNumber, int pageSize)
-        {
-            int offset = (pageNumber - 1) * pageSize;
-            string query = $"SELECT * FROM {BoundName} LIMIT {pageSize} OFFSET {offset}";
-            return GenericDB.Instance.ExecuteQuery<T>(query);
-        }
-
-        private int GetValueOfPrimaryKey(T entity)
-        {
-            var property = entity.GetType().GetProperties().FirstOrDefault(p => p.Name == PrimaryKey);
-            //if no primary key is found, throw an exception
-            if (property == null)
-                throw new Exception($"Could not find primary key with name {PrimaryKey} in {entity.GetType().Name}, if your primary key is not named {PrimaryKey}, please set the PrimaryKey property of the DbObject to the name of your primary key. Use the [NoKey] attribute to affirm there is no key.");
-            return (int)property.GetValue(entity);
-        }
-    }
-
     public class DBInstance : BetterDisposable
     {
         private static GenericDB _instance;
@@ -232,40 +30,29 @@ namespace LORM
 
         public DBInstance(string dbType, string connectionString)
         {
-            if (dbType == "mysql")
+            DbConnection connection;
+            switch (dbType)
             {
-                var connection = new MySqlConnection(connectionString);
-                GenericDB.Instance.SetConnection(connection);
-                _instance = GenericDB.Instance;
+                case "mysql":
+                    connection = new MySqlConnection(connectionString);
+                    break;
+                case "postgres":
+                    connection = new NpgsqlConnection(connectionString);
+                    break;
+                case "oracle":
+                    connection = new OracleConnection(connectionString);
+                    break;
+                case "sqlite":
+                    connection = new SqliteConnection(connectionString);
+                    break;
+                case "sqlserver":
+                    connection = new SqlConnection(connectionString);
+                    break;
+                default:
+                    throw new Exception($"Could not find DB Type with type {dbType}");
             }
-            else if (dbType == "postgres")
-            {
-                var connection = new NpgsqlConnection(connectionString);
-                GenericDB.Instance.SetConnection(connection);
-                _instance = GenericDB.Instance;
-            }
-            else if (dbType == "oracle")
-            {
-                var connection = new OracleConnection(connectionString);
-                GenericDB.Instance.SetConnection(connection);
-                _instance = GenericDB.Instance;
-            }
-            else if (dbType == "sqlite")
-            {
-                var connection = new SqliteConnection(connectionString);
-                GenericDB.Instance.SetConnection(connection);
-                _instance = GenericDB.Instance;
-            }
-            else if (dbType == "sqlserver")
-            {
-                var connection = new SqlConnection(connectionString);
-                GenericDB.Instance.SetConnection(connection);
-                _instance = GenericDB.Instance;
-            }
-            else
-            {
-                throw new Exception($"Could not find DB Type with type {dbType}");
-            }
+            GenericDB.Instance.SetConnection(connection);
+            _instance = GenericDB.Instance;
 
             mapTables();
         }
@@ -283,35 +70,86 @@ namespace LORM
                 var tValue = property.PropertyType.GetProperty("Value");
                 var tPK = property.PropertyType.GetProperty("PrimaryKey");
                 var tBN = property.PropertyType.GetProperty("BoundName");
+                var aFM = property.PropertyType.GetProperty("attributeFunctionMap", BindingFlags.NonPublic | BindingFlags.Instance);
+                var cN = property.PropertyType.GetProperty("columnNames", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (tValue != null)
                 {
                     var fieldType = tValue.PropertyType.Name;
+                    var attributes = property.GetCustomAttributes(true);
+                    foreach (var attribute in attributes)
+                    {
+                        if (attribute.GetType().Name == "TableNameAttribute")
+                        {
+                            fieldType = ((TableNameAttribute)attribute).Name;
+                            break;
+                        }
+                    }
                     foreach (var table in tables)
                     {
                         if (table.ToLower() == fieldType.ToLower())
                         {
-                            var primaryKey = "id";
+                            var primaryKey = "ID";
+                            Dictionary<String, Action<object>[]> attrfm = new Dictionary<string, Action<object>[]>();
+                            Dictionary<String, String> cNMap = new Dictionary<string, string>();
 
                             //check if property has a children with [Key] attribute
                             var children = tValue.PropertyType.GetProperties();
                             foreach (var child in children)
                             {
-                                var attributes = child.GetCustomAttributes(true);
+                                attributes = child.GetCustomAttributes(true);
                                 foreach (var attribute in attributes)
                                 {
-                                    if (attribute.GetType().Name == "KeyAttribute")
+                                    switch (attribute.GetType().Name)
                                     {
-                                        primaryKey = child.Name;
+                                        case "ColumnNameAttribute":
+                                            //map the string to ValidateLength function
+                                            cNMap.Add(child.Name, ((ColumnNameAttribute)attribute).Name);
+                                            break;
+                                        case "NullableAttribute":
+                                            //map the string to ValidateNullable function
+                                            var action = new Action<object>[] { (object value) => ValidateNullable(value, ((NullableAttribute)attribute).IsNullable, child.Name) }; 
+
+                                            attrfm.Add(child.Name, action);
+                                            break;
+                                        case "StringLengthAttribute":
+                                            //map the string to ValidateStringLength function 
+                                            action = new Action<object>[] { (object value) => ValidateLength((string)value, ((StringLengthAttribute)attribute).MaxLength) };
+
+                                            attrfm.Add(child.Name, action);
+                                            break;
+                                        case "KeyAttribute":
+                                            primaryKey = child.Name;
+                                            break;
                                     }
                                 }
                             }
                             //set primary key
                             tPK.SetValue(property.GetValue(this), primaryKey);
+                            //set attribute function map
+                            aFM.SetValue(property.GetValue(this), attrfm);
+                            //set column name map
+                            cN.SetValue(property.GetValue(this), cNMap);
                             //set bound name
                             tBN.SetValue(property.GetValue(this), table.ToLower());
                         }
                     }
                 }
+            }
+        }
+
+        private void ValidateLength(string value, int maxLength)
+        {
+            if (value.Length > maxLength)
+            {
+                throw new Exception($"Length of '{value}' is greater than {maxLength}");
+            }
+        }
+
+        private void ValidateNullable(object value, bool isNullable, string propertyName)
+        {
+            if (value == null && !isNullable)
+            {
+                throw new Exception($"Value of {propertyName} cannot be null");
             }
         }
 
@@ -352,241 +190,6 @@ namespace LORM
             .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(DbObject<>))
             .ToList();
         }
-    }
-
-
-    public class GenericDB
-    {
-        private static GenericDB _instance;
-        private DbConnection _connection;
-
-        public static GenericDB Instance
-        {
-            get
-            {
-                if (_instance == null)
-                    _instance = new GenericDB();
-                return _instance;
-            }
-        }
-
-        public void SetConnection(DbConnection connection)
-        {
-            _connection = connection;
-        }
-
-        public void EndTransaction()
-        {
-            _connection.Close();
-        }
-
-        public T? ExecuteQueryFirst<T>(string query, object parameters = null)
-        {
-            OpenConn();
-            using (var cmd = _connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                if (parameters != null)
-                    AddParameters(cmd, parameters);
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        return MapToObject<T>(reader, true);
-                    }
-                }
-            }
-            _connection.Close();
-
-            return default(T);
-        }
-
-        public IEnumerable<DbDataReader> Query(string query, object parameters = null)
-        {
-            OpenConn();
-            using (var cmd = _connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                if (parameters != null)
-                    AddParameters(cmd, parameters);
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        yield return reader;
-                    }
-                }
-            }
-            _connection.Close();
-        }
-
-        public void NonQuery(string query, object parameters = null)
-        {
-            OpenConn();
-            using (var cmd = _connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                if (parameters != null)
-                    AddParameters(cmd, parameters);
-
-                cmd.ExecuteNonQuery();
-            }
-            _connection.Close();
-        }
-
-        public List<T> ExecuteQuery<T>(string query, object parameters = null)
-        {
-            var results = new List<T>();
-
-            OpenConn();
-            using (var cmd = _connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                if (parameters != null)
-                    AddParameters(cmd, parameters);
-
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        results.Add(MapToObject<T>(reader));
-                    }
-                }
-            }
-            _connection.Close();
-
-            return results;
-        }
-
-        public int ExecuteNonQuery(string query, object parameters = null)
-        {
-            OpenConn();
-            using (var cmd = _connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                if (parameters != null)
-                    AddParameters(cmd, parameters);
-
-                int rowsAffected = cmd.ExecuteNonQuery();
-                _connection.Close();
-
-                return rowsAffected;
-            }
-        }
-
-        public T ExecuteScalar<T>(string query, object parameters = null)
-        {
-            OpenConn();
-            using (var cmd = _connection.CreateCommand())
-            {
-                cmd.CommandText = query;
-                if (parameters != null)
-                    AddParameters(cmd, parameters);
-
-                object result = cmd.ExecuteScalar();
-                _connection.Close();
-
-                return (T)Convert.ChangeType(result, typeof(T));
-            }
-        }
-
-        public DbTransaction BeginTransaction()
-        {
-            OpenConn();
-            return _connection.BeginTransaction();
-        }
-
-
-        private T MapToObject<T>(DbDataReader reader, bool closeConnection = false)
-        {
-            T result = Activator.CreateInstance<T>();
-            for (int i = 0; i < reader.FieldCount; i++)
-            {
-                //get the property name from the column name but all in lowercase
-                string columnName = reader.GetName(i).ToLower();
-                //for each property in the object, match it to its lowercase version then try to find the column name based on the lowercase version
-                PropertyInfo[] properties = result.GetType().GetProperties();
-                PropertyInfo property = null;
-                foreach (PropertyInfo prop in properties)
-                {
-                    if (prop.Name.ToLower() == columnName)
-                    {
-                        property = prop;
-                        break;
-                    }
-                }
-
-                if (property != null)
-                {
-                    object value = reader.GetValue(i);
-                    property.SetValue(result, value);
-                }
-            }
-            if (closeConnection)
-                _connection.Close();
-            return result;
-        }
-
-        private void AddParameters(DbCommand cmd, object parameters)
-        {
-            //if the parameters is a dictionary, then add each key/value pair as a parameter
-            if (parameters is Dictionary<string, object>)
-            {
-                foreach (var parameter in (Dictionary<string, object>)parameters)
-                {
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = parameter.Key;
-                    param.Value = parameter.Value;
-                    cmd.Parameters.Add(param);
-                }
-            }
-            //if the parameters is an object, then add each property as a parameter
-            else if (parameters is object)
-            {
-                foreach (var property in parameters.GetType().GetProperties())
-                {
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = property.Name;
-                    param.Value = property.GetValue(parameters);
-                    cmd.Parameters.Add(param);
-                }
-            }
-
-
-        }
-
-
-        public List<string> GetKeys()
-        {
-            List<string> keys = new List<string>();
-            OpenConn();
-            string query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'";
-            var cmd = _connection.CreateCommand();
-            cmd.CommandText = query;
-
-
-            DbDataReader reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                string tableName = reader["TABLE_NAME"].ToString();
-                keys.Add(tableName);
-            }
-
-            reader.Close();
-            _connection.Close();
-            return keys;
-        }
-
-        private void OpenConn()
-        {
-            if (_connection.State == ConnectionState.Closed)
-            {
-                _connection.Open();
-            }
-        }
-
     }
 }
 
