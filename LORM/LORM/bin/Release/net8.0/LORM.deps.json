@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "LORM/1.0.5": {
+      "LORM/1.0.6": {
         "dependencies": {
           "Microsoft.Data.Sqlite.Core": "8.0.0",
           "MySql.Data": "8.2.0",
@@ -451,7 +451,7 @@
     }
   },
   "libraries": {
-    "LORM/1.0.5": {
+    "LORM/1.0.6": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

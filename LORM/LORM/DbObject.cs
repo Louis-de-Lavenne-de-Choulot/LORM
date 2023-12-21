@@ -1,16 +1,21 @@
 using System.Reflection;
 
-namespace LORM 
+namespace LORM
 {
-    
+
     public class DbObject<T> : BetterDisposable
     {
-        private Dictionary<String, Action<object>[]>? attributeFunctionMap {get; set;} 
-        private Dictionary<String, String>? columnNames {get; set;}
+        private Dictionary<String, Action<object>[]>? attributeFunctionMap { get; set; }
+        private Dictionary<String, String>? columnNames { get; set; }
         public static string? BoundName { get; set; }
         public static string? PrimaryKey { get; set; }
 
         public T? Value { get; set; }
+
+        public string GetBoundName()
+        {
+            return BoundName;
+        }
 
         public T? GetElementById(int id)
         {
@@ -60,7 +65,7 @@ namespace LORM
 
             var cNames = string.Join(", ", columnNamesList);
             var parameterNames = string.Join(", ", parameterNamesList);
-    
+
             string query = $"INSERT INTO {BoundName} ({cNames}) VALUES ({parameterNames})";
             GenericDB.Instance.ExecuteNonQuery(query, parameters);
         }
@@ -79,20 +84,20 @@ namespace LORM
                 var parN = new List<string>();
                 foreach (var property in properties)
                 {
-                var propertyName = property.Name;
-                if (attributeFunctionMap.ContainsKey(propertyName))
-                {
-                    //run the function mapped to the attribute
-                    var funcs = attributeFunctionMap[propertyName];
-                    foreach (var func in funcs)
+                    var propertyName = property.Name;
+                    if (attributeFunctionMap.ContainsKey(propertyName))
                     {
-                        func(property.GetValue(entity));
+                        //run the function mapped to the attribute
+                        var funcs = attributeFunctionMap[propertyName];
+                        foreach (var func in funcs)
+                        {
+                            func(property.GetValue(entity));
+                        }
                     }
-                }
-                if (columnNames.ContainsKey(propertyName))
-                {
-                    propertyName = columnNames[propertyName];
-                }
+                    if (columnNames.ContainsKey(propertyName))
+                    {
+                        propertyName = columnNames[propertyName];
+                    }
                     var parameterName = $"@{propertyName}{i}";
                     var propertyValue = property.GetValue(entity);
 
@@ -167,7 +172,7 @@ namespace LORM
             {
                 var property = conditionProperties[i];
                 var propertyName = property.Name;
-                
+
                 if (columnNames.ContainsKey(propertyName))
                 {
                     propertyName = columnNames[propertyName];
@@ -221,5 +226,5 @@ namespace LORM
             return (int)property.GetValue(entity);
         }
     }
-
 }
+
