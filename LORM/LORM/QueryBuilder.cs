@@ -18,13 +18,23 @@ namespace LORM {
 
             }
 
+            private void cleanup()
+            {
+                _query = "";
+                _parameters = new Dictionary<string, object>();
+                _parameterCount = 0;
+            }
+
             public List<T> Select(bool distinct = false)
             {
                 if (distinct)
                     _query = $"SELECT DISTINCT * FROM {BoundName} {_query}";
                 else
                     _query = $"SELECT * FROM {BoundName} {_query}";
-                return GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+
+                List<T> ret = GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+                cleanup();
+                return ret;
             }
 
             public List<T> Select(string Elm, bool distinct = false)
@@ -33,13 +43,16 @@ namespace LORM {
                     _query = $"SELECT DISTINCT {Elm} FROM {BoundName} {_query}";
                 else
                     _query = $"SELECT {Elm} FROM {BoundName} {_query}";
-                return GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+                List<T> ret = GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+                cleanup();
+                return ret;
             }
 
             public void Delete()
             {
                 _query = $"DELETE FROM {BoundName} {_query}";
-                GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+                GenericDB.Instance.ExecuteNonQuery(_query, _parameters);
+                cleanup();
             }
             
 

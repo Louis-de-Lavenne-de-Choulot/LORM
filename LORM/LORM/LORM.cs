@@ -91,7 +91,6 @@ namespace LORM
                             var primaryKey = "ID";
                             Dictionary<String, Action<object>[]> attrfm = new Dictionary<string, Action<object>[]>();
                             Dictionary<String, String> cNMap = new Dictionary<string, string>();
-
                             //check if property has a children with [Key] attribute
                             var children = tValue.PropertyType.GetProperties();
                             foreach (var child in children)

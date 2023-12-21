@@ -162,9 +162,15 @@ namespace LORM
             GenericDB.Instance.ExecuteNonQuery(query, new { id = GetValueOfPrimaryKey(entity) });
         }
 
-        public List<T> Fetch(object conditions)
+        public List<T> Fetch(object conditions = null)
         {
-            string query = $"SELECT * FROM {BoundName} WHERE ";
+            string query = $"SELECT * FROM {BoundName} ";
+            if (conditions != null)
+            {
+                query += "WHERE ";
+            } else {
+                return GenericDB.Instance.ExecuteQuery<T>(query);
+            }
             var parameters = new Dictionary<string, object>();
             var conditionProperties = conditions.GetType().GetProperties();
 
