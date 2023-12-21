@@ -12,7 +12,7 @@ namespace LORM
 
         public T? Value { get; set; }
 
-        public string GetBoundName()
+        internal string GetBoundName()
         {
             return BoundName;
         }

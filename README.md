@@ -21,6 +21,8 @@ To use LORM in your C# project, you can either download the source code and buil
 
 ## Usage
 
+[Example_File](https://github.com/Louis-de-Lavenne-de-Choulot/LORM/blob/main/UsageExample.cs)
+
 ### Initializing the Database Connection
 
 To start using LORM, you need to initialize the database connection. The `DBInstance` class is responsible for managing the database connection. Here's an example of how to initialize the `DBInstance`:
@@ -109,6 +111,20 @@ using (var dbCtx = new TestContext())
 ```
 
 In the example above, we execute a custom SQL query and store the result in the result variable.
+
+Pro No SQL Queries
+LORM supports pro no SQL queries using the QueryBuilder method provided by LORM. Here's an example:
+
+```csharp
+var qB = new QueryBuilder<Users2>(dbCtx.Users);
+users = qB.Where("Id").GreaterThan(100).AndNot("surname").Equals("Test1").Select();
+
+foreach (var u in users)
+{
+    Console.WriteLine($"ID: {u.Id} User: {u.FirstName} {u.Surname}, role_id: {u.Role_Id}");
+}
+```
+
 
 Joining Tables
 LORM supports joining tables using custom SQL queries. Here's an example:

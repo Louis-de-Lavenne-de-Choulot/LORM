@@ -126,7 +126,7 @@ namespace LORM
             }
         }
 
-        public T ExecuteScalar<T>(string query, object parameters = null)
+        internal T ExecuteScalar<T>(string query, object parameters = null)
         {
             OpenConn();
             using (var cmd = _connection.CreateCommand())
@@ -142,14 +142,14 @@ namespace LORM
             }
         }
 
-        public DbTransaction BeginTransaction()
+        internal DbTransaction BeginTransaction()
         {
             OpenConn();
             return _connection.BeginTransaction();
         }
 
 
-        private T MapToObject<T>(DbDataReader reader, bool closeConnection = false)
+        internal T MapToObject<T>(DbDataReader reader, bool closeConnection = false)
         {
             T result = Activator.CreateInstance<T>();
             for (int i = 0; i < reader.FieldCount; i++)
@@ -181,7 +181,7 @@ namespace LORM
             return result;
         }
 
-        private void AddParameters(DbCommand cmd, object parameters)
+        internal void AddParameters(DbCommand cmd, object parameters)
         {
             //if the parameters is a dictionary, then add each key/value pair as a parameter
             if (parameters is Dictionary<string, object>)
@@ -210,7 +210,7 @@ namespace LORM
         }
 
 
-        public List<string> GetKeys()
+        internal List<string> GetKeys()
         {
             List<string> keys = new List<string>();
             OpenConn();

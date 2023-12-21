@@ -18,7 +18,7 @@ namespace LORM
     {
         private static GenericDB _instance;
 
-        public static GenericDB Instance
+        private static GenericDB Instance
         {
             get
             {
@@ -137,7 +137,7 @@ namespace LORM
             }
         }
 
-        private void ValidateLength(string value, int maxLength)
+        internal void ValidateLength(string value, int maxLength)
         {
             if (value.Length > maxLength)
             {
@@ -145,7 +145,7 @@ namespace LORM
             }
         }
 
-        private void ValidateNullable(object value, bool isNullable, string propertyName)
+        internal void ValidateNullable(object value, bool isNullable, string propertyName)
         {
             if (value == null && !isNullable)
             {
@@ -174,7 +174,7 @@ namespace LORM
         }
 
 
-        private List<PropertyInfo>? GetCallingChildClass()
+        internal List<PropertyInfo>? GetCallingChildClass()
         {
             // Get the stack trace
             StackTrace stackTrace = new StackTrace();

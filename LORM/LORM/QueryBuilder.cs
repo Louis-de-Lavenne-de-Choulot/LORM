@@ -18,11 +18,30 @@ namespace LORM {
 
             }
 
-            public List<T> Select()
+            public List<T> Select(bool distinct = false)
             {
-                _query = $"SELECT * FROM {BoundName} {_query}";
+                if (distinct)
+                    _query = $"SELECT DISTINCT * FROM {BoundName} {_query}";
+                else
+                    _query = $"SELECT * FROM {BoundName} {_query}";
                 return GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
             }
+
+            public List<T> Select(string Elm, bool distinct = false)
+            {
+                if (distinct)
+                    _query = $"SELECT DISTINCT {Elm} FROM {BoundName} {_query}";
+                else
+                    _query = $"SELECT {Elm} FROM {BoundName} {_query}";
+                return GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+            }
+
+            public void Delete()
+            {
+                _query = $"DELETE FROM {BoundName} {_query}";
+                GenericDB.Instance.ExecuteQuery<T>(_query, _parameters);
+            }
+            
 
             public QueryBuilder<T> Where(string Elm)
             {
