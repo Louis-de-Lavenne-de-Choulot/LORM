@@ -1,9 +1,9 @@
-# LORM - Lightweight Object-Relational Mapping
+# LORM - Legendary Object-Relational Mapping
 
-LORM (Lightweight Object-Relational Mapping) is a simple ORM (Object-Relational Mapping) library for C#. It provides a convenient way to interact with a database using object-oriented programming principles. This README file explains how to initialize and use LORM in your C# projects.
+LORM (Legendary Object-Relational Mapping) is a simple ORM (Object-Relational Mapping) library for C#. It provides a convenient way to interact with a database using object-oriented programming principles. This README file explains how to initialize and use LORM in your C# projects.
 
 ## Table of Contents
-- [LORM - Lightweight Object-Relational Mapping](#lorm---lightweight-object-relational-mapping)
+- [LORM - Legendary Object-Relational Mapping](#lorm---legendary-object-relational-mapping)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
